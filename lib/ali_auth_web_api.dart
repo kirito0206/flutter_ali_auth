@@ -39,36 +39,54 @@ class Params {
 
 /// 阿里云号码认证 Web 插件（Dart 封装）
 class AliAuthPluginWebApi {
-  final PhoneNumberServer _server = PhoneNumberServer();
+  PhoneNumberServer? _server;
+
+  PhoneNumberServer get _phoneNumberServer {
+    final server = _server;
+    if (server != null) {
+      return server;
+    }
+
+    try {
+      return _server = PhoneNumberServer();
+    } catch (error) {
+      throw StateError(
+        'AliAuth Web SDK is not loaded correctly. '
+        'Add <script src="js/numberAuth-web-sdk.js"></script> to web/index.html '
+        'before Flutter starts, and make sure it defines window.PhoneNumberServer. '
+        'Original error: $error',
+      );
+    }
+  }
 
   /// 网络类型检查接口
   Future<String?> getConnection() async {
-    final result = await _server.getConnection().toDart;
+    final result = await _phoneNumberServer.getConnection().toDart;
     return result?.toDart;
   }
 
   /// 设置 SDK 是否开启日志。开启后会在控制台打印更多内容便于排查问题。
   Future<void> setLoggerEnable(bool isEnable) async {
-    _server.setLoggerEnable(isEnable);
+    _phoneNumberServer.setLoggerEnable(isEnable);
   }
 
   /// 获取版本号
   Future<String?> getVersion() async {
-    final result = await _server.getVersion().toDart;
+    final result = await _phoneNumberServer.getVersion().toDart;
     return result?.toDart;
   }
 
   /// 调用之前先去用户服务端获取 accessToken 和 jwtToken
   Future<void> checkAuthAvailable(
-      String accessToken,
-      String jwtToken,
-      void Function(dynamic status) success,
-      void Function(dynamic status) error,
-      ) async {
+    String accessToken,
+    String jwtToken,
+    void Function(dynamic status) success,
+    void Function(dynamic status) error,
+  ) async {
     final jsSuccess = ((JSAny? status) => success(status)).toJS;
     final jsError = ((JSAny? status) => error(status)).toJS;
 
-    _server.checkAuthAvailable(
+    _phoneNumberServer.checkAuthAvailable(
       Params(
         accessToken: accessToken,
         jwtToken: jwtToken,
@@ -80,12 +98,14 @@ class AliAuthPluginWebApi {
 
   /// 身份鉴权成功后才可调用获取 Token 接口
   Future<void> getVerifyToken(
-      void Function(dynamic status) success,
-      void Function(dynamic status) error,
-      ) async {
+    void Function(dynamic status) success,
+    void Function(dynamic status) error,
+  ) async {
     final jsSuccess = ((JSAny? status) => success(status)).toJS;
     final jsError = ((JSAny? status) => error(status)).toJS;
 
-    _server.getVerifyToken(Params(success: jsSuccess, error: jsError));
+    _phoneNumberServer.getVerifyToken(
+      Params(success: jsSuccess, error: jsError),
+    );
   }
 }
